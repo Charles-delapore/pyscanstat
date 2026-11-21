@@ -7,6 +7,7 @@ SaTScan binary required.
 """
 
 from .llr import binomial_llr, poisson_llr
+from .montecarlo import monte_carlo_pvalue, monte_carlo_scan
 from .results import Cluster, ScanResult
 from .scan import scan_binomial, scan_poisson
 
@@ -17,6 +18,8 @@ __all__ = [
     "ScanResult",
     "scan_poisson",
     "scan_binomial",
+    "monte_carlo_pvalue",
+    "monte_carlo_scan",
     "poisson_llr",
     "binomial_llr",
     "__version__",

@@ -109,7 +109,8 @@ def _zone_case_sums(zones, cases, expected):
 
 
 def scan_poisson(coords, cases, population, *,
-                 max_population_fraction=0.5, n_secondary=4):
+                 max_population_fraction=0.5, n_secondary=4,
+                 n_replicates=0, random_state=None):
     """Circular spatial scan, Poisson model (Kulldorff 1997).
 
     Parameters
@@ -120,12 +121,22 @@ def scan_poisson(coords, cases, population, *,
     max_population_fraction : largest share of the total population a
         candidate zone may contain (SaTScan default 0.5).
     n_secondary : number of non-overlapping secondary clusters to report.
+    n_replicates : Monte Carlo replicates for the p-value (0 = no test).
+    random_state : seed for the Monte Carlo replicates.
 
     Returns a :class:`ScanResult` with the most likely cluster, secondary
-    clusters, LLR and relative risk per cluster. For a Monte Carlo
-    p-value, call :func:`pyscanstat.montecarlo.monte_carlo_scan` on the
-    same inputs (see :mod:`pyscanstat.montecarlo`).
+    clusters, LLR and relative risk per cluster; with ``n_replicates > 0``
+    also the Monte Carlo p-value (Dwass 1957).
     """
+    if n_replicates and n_replicates > 0:
+        from .montecarlo import monte_carlo_scan
+
+        return monte_carlo_scan(
+            coords, cases, population, model="poisson",
+            n_replicates=n_replicates, random_state=random_state,
+            max_population_fraction=max_population_fraction,
+            n_secondary=n_secondary,
+        )
     coords, cases, population = _validate_spatial(coords, cases, population)
     if not (0.0 < max_population_fraction <= 1.0):
         raise ValueError("max_population_fraction must be in (0, 1]")
@@ -168,13 +179,24 @@ def scan_poisson(coords, cases, population, *,
 
 
 def scan_binomial(coords, cases, population, *,
-                  max_population_fraction=0.5, n_secondary=4):
+                  max_population_fraction=0.5, n_secondary=4,
+                  n_replicates=0, random_state=None):
     """Circular spatial scan, binomial (Bernoulli) model (Kulldorff 1997).
 
     Here ``population`` is the total number of individuals per location
     (cases + controls) and ``cases`` the cases among them. Otherwise
-    identical in structure to :func:`scan_poisson`.
+    identical in structure to :func:`scan_poisson`. With
+    ``n_replicates > 0`` a Monte Carlo p-value is computed.
     """
+    if n_replicates and n_replicates > 0:
+        from .montecarlo import monte_carlo_scan
+
+        return monte_carlo_scan(
+            coords, cases, population, model="binomial",
+            n_replicates=n_replicates, random_state=random_state,
+            max_population_fraction=max_population_fraction,
+            n_secondary=n_secondary,
+        )
     coords, cases, population = _validate_spatial(coords, cases, population)
     if np.any(cases > population):
         raise ValueError("cases must not exceed population (binomial model)")
