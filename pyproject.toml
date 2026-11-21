@@ -7,7 +7,7 @@ name = "pyscanstat"
 version = "0.1.0"
 description = "Exact-likelihood spatial and space-time scan statistics (Kulldorff 1997) in pure Python with Numba acceleration"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 requires-python = ">=3.9"
 authors = [{name = "Charles-delapore"}]
 keywords = ["spatial scan statistic", "Kulldorff", "disease surveillance", "cluster detection", "Monte Carlo"]
