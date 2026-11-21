@@ -72,14 +72,10 @@ def _expected_spacetime(counts, population):
 
 def _zone_time_cumsums(zones, counts, expected):
     """Time-cumsummed case/expected counts per zone, shape (Z, T+1)."""
-    n_zones = zones.n_zones
-    n_loc = zones.n
-    membership = np.zeros((n_zones, n_loc), dtype=np.float64)
-    for pos in range(n_zones):
-        membership[pos, zones.members(pos)] = 1.0
+    membership = zones.membership  # cached on the ZoneSet; reused per MC rep
     zone_cases = membership @ counts.T
     zone_exp = membership @ expected.T
-    zeros = np.zeros((n_zones, 1), dtype=np.float64)
+    zeros = np.zeros((zones.n_zones, 1), dtype=np.float64)
     csum_c = np.concatenate(
         [zeros, np.cumsum(zone_cases, axis=1)], axis=1)
     csum_e = np.concatenate(
@@ -87,13 +83,20 @@ def _zone_time_cumsums(zones, counts, expected):
     return csum_c, csum_e
 
 
-def _all_cylinder_llr(zones, counts, expected, max_duration, prospective):
+def _all_cylinder_llr(zones, counts, expected, max_duration, prospective,
+                      min_cases=1):
     csum_c, csum_e = _zone_time_cumsums(zones, counts, expected)
     n_times = counts.shape[0]
     out = np.zeros((zones.n_zones, n_times, max_duration),
                    dtype=np.float64)
     _spacetime_llr_kernel(csum_c, csum_e, float(counts.sum()),
                           max_duration, prospective, out)
+    if min_cases > 1:
+        # Zero cylinders whose case count is below the threshold.
+        for d in range(1, max_duration + 1):
+            c_win = csum_c[:, d:] - csum_c[:, :-d]
+            out[:, d - 1:, d - 1] = np.where(
+                c_win < min_cases, 0.0, out[:, d - 1:, d - 1])
     return out
 
 
@@ -161,7 +164,7 @@ def _secondary_st_clusters(zones, llr_3d, csum_c, csum_e, total_cases,
 def scan_spacetime_poisson(coords, counts, population, *,
                            max_duration=None, prospective=False,
                            max_population_fraction=0.5, n_replicates=0,
-                           random_state=None, n_secondary=4):
+                           random_state=None, n_secondary=4, min_cases=1):
     """Space-time cylindrical scan, Poisson model (Kulldorff 1997).
 
     Parameters
@@ -193,7 +196,7 @@ def scan_spacetime_poisson(coords, counts, population, *,
     expected = _expected_spacetime(counts, population)
     total_cases = float(counts.sum())
     llr_3d = _all_cylinder_llr(zones, counts, expected, max_duration,
-                               prospective)
+                               prospective, min_cases=min_cases)
     csum_c, csum_e = _zone_time_cumsums(zones, counts, expected)
 
     rep_max = None
@@ -206,7 +209,8 @@ def scan_spacetime_poisson(coords, counts, population, *,
                 for t in range(n_times)
             ])
             rep_llr = _all_cylinder_llr(zones, rep_counts, expected,
-                                        max_duration, prospective)
+                                        max_duration, prospective,
+                                        min_cases=min_cases)
             rep_max[r] = float(np.max(rep_llr))
 
     if zones.n_zones == 0:

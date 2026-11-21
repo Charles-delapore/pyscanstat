@@ -70,7 +70,8 @@ def replicate_cases_binomial(rng, population, total_cases):
 
 def monte_carlo_scan(coords, cases, population, *, model="poisson",
                      n_replicates=999, random_state=None,
-                     max_population_fraction=0.5, n_secondary=4):
+                     max_population_fraction=0.5, n_secondary=4,
+                     min_cases=1):
     """Circular scan with Monte Carlo significance (Poisson/binomial).
 
     Same scan as :func:`pyscanstat.scan.scan_poisson` /
@@ -92,12 +93,14 @@ def monte_carlo_scan(coords, cases, population, *, model="poisson",
 
     if model == "poisson":
         expected = _expected_poisson(cases, population)
-        scan_fn = lambda cs: scan_zones_poisson(zones, cs, expected)
+        scan_fn = lambda cs: scan_zones_poisson(zones, cs, expected,
+                                                min_cases=min_cases)
         replicate_fn = lambda: replicate_cases_poisson(rng, expected)
         total_expected = float(expected.sum())
     else:
         expected = population * (total_cases / total_population)
-        scan_fn = lambda cs: scan_zones_binomial(zones, cs, population)
+        scan_fn = lambda cs: scan_zones_binomial(zones, cs, population,
+                                                 min_cases=min_cases)
         replicate_fn = lambda: replicate_cases_binomial(
             rng, population, total_cases)
         total_expected = total_population

@@ -110,7 +110,7 @@ def _zone_case_sums(zones, cases, expected):
 
 def scan_poisson(coords, cases, population, *,
                  max_population_fraction=0.5, n_secondary=4,
-                 n_replicates=0, random_state=None):
+                 n_replicates=0, random_state=None, min_cases=1):
     """Circular spatial scan, Poisson model (Kulldorff 1997).
 
     Parameters
@@ -135,14 +135,14 @@ def scan_poisson(coords, cases, population, *,
             coords, cases, population, model="poisson",
             n_replicates=n_replicates, random_state=random_state,
             max_population_fraction=max_population_fraction,
-            n_secondary=n_secondary,
+            n_secondary=n_secondary, min_cases=min_cases,
         )
     coords, cases, population = _validate_spatial(coords, cases, population)
     if not (0.0 < max_population_fraction <= 1.0):
         raise ValueError("max_population_fraction must be in (0, 1]")
     expected = _expected_poisson(cases, population)
     zones = build_zones(coords, population, max_population_fraction)
-    llr = scan_zones_poisson(zones, cases, expected)
+    llr = scan_zones_poisson(zones, cases, expected, min_cases=min_cases)
     total_cases = float(cases.sum())
     total_expected = float(expected.sum())
     cases_in, expected_in = _zone_case_sums(zones, cases, expected)
@@ -180,7 +180,7 @@ def scan_poisson(coords, cases, population, *,
 
 def scan_binomial(coords, cases, population, *,
                   max_population_fraction=0.5, n_secondary=4,
-                  n_replicates=0, random_state=None):
+                  n_replicates=0, random_state=None, min_cases=1):
     """Circular spatial scan, binomial (Bernoulli) model (Kulldorff 1997).
 
     Here ``population`` is the total number of individuals per location
@@ -195,7 +195,7 @@ def scan_binomial(coords, cases, population, *,
             coords, cases, population, model="binomial",
             n_replicates=n_replicates, random_state=random_state,
             max_population_fraction=max_population_fraction,
-            n_secondary=n_secondary,
+            n_secondary=n_secondary, min_cases=min_cases,
         )
     coords, cases, population = _validate_spatial(coords, cases, population)
     if np.any(cases > population):
@@ -203,7 +203,7 @@ def scan_binomial(coords, cases, population, *,
     if not (0.0 < max_population_fraction <= 1.0):
         raise ValueError("max_population_fraction must be in (0, 1]")
     zones = build_zones(coords, population, max_population_fraction)
-    llr = scan_zones_binomial(zones, cases, population)
+    llr = scan_zones_binomial(zones, cases, population, min_cases=min_cases)
     total_cases = float(cases.sum())
     total_population = float(population.sum())
     cases_in = np.cumsum(cases[zones.order], axis=1)[

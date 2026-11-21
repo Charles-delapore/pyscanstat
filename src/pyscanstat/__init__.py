@@ -6,6 +6,7 @@ testing, plus a space-time cylindrical scan. Pure Python + Numba; no
 SaTScan binary required.
 """
 
+from .data import make_clustered, make_null, make_spacetime_clustered
 from .llr import binomial_llr, poisson_llr
 from .montecarlo import monte_carlo_pvalue, monte_carlo_scan
 from .results import Cluster, ScanResult
@@ -24,5 +25,8 @@ __all__ = [
     "monte_carlo_scan",
     "poisson_llr",
     "binomial_llr",
+    "make_clustered",
+    "make_null",
+    "make_spacetime_clustered",
     "__version__",
 ]

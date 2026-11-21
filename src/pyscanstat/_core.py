@@ -57,6 +57,21 @@ class ZoneSet:
         self.n_zones = int(self.center.shape[0])
         # Cumulative population per centre, for fast zone lookups.
         self._cum_pop = cum_pop
+        self._membership = None
+
+    @property
+    def membership(self):
+        """Boolean (n_zones, n) zone-membership matrix, built lazily.
+
+        Used by the space-time scan; building it once and reusing it
+        across Monte Carlo replicates avoids rebuilding it per replicate.
+        """
+        if self._membership is None:
+            m = np.zeros((self.n_zones, self.n), dtype=bool)
+            for pos in range(self.n_zones):
+                m[pos, self.members(pos)] = True
+            self._membership = m
+        return self._membership
 
     def members(self, zone_pos):
         """Location indices of the ``zone_pos``-th valid zone."""
@@ -128,8 +143,12 @@ def _zone_sums(zones, values):
     return cum[zones.center, zones.size - 1]
 
 
-def scan_zones_poisson(zones, cases, expected):
-    """Poisson LLR for every valid zone. Returns an ``(n_zones,)`` array."""
+def scan_zones_poisson(zones, cases, expected, min_cases=1):
+    """Poisson LLR for every valid zone. Returns an ``(n_zones,)`` array.
+
+    Zones with fewer than ``min_cases`` cases get LLR 0 (smerc's
+    ``min.cases``; default 1 disables the filter).
+    """
     cases = np.asarray(cases, dtype=np.float64)
     expected = np.asarray(expected, dtype=np.float64)
     c_in = _zone_sums(zones, cases)
@@ -138,10 +157,12 @@ def scan_zones_poisson(zones, cases, expected):
     total_expected = float(expected.sum())
     out = np.empty(zones.n_zones, dtype=np.float64)
     poisson_llr_kernel(c_in, e_in, total_cases, total_expected, out)
+    if min_cases > 1:
+        out[c_in < min_cases] = 0.0
     return out
 
 
-def scan_zones_binomial(zones, cases, population):
+def scan_zones_binomial(zones, cases, population, min_cases=1):
     """Binomial LLR for every valid zone. Returns an ``(n_zones,)`` array."""
     cases = np.asarray(cases, dtype=np.float64)
     population = np.asarray(population, dtype=np.float64)
@@ -151,4 +172,6 @@ def scan_zones_binomial(zones, cases, population):
     total_population = float(population.sum())
     out = np.empty(zones.n_zones, dtype=np.float64)
     binomial_llr_kernel(c_in, n_in, total_cases, total_population, out)
+    if min_cases > 1:
+        out[c_in < min_cases] = 0.0
     return out
