@@ -10,6 +10,7 @@ from .llr import binomial_llr, poisson_llr
 from .montecarlo import monte_carlo_pvalue, monte_carlo_scan
 from .results import Cluster, ScanResult
 from .scan import scan_binomial, scan_poisson
+from .spacetime import scan_spacetime_poisson
 
 __version__ = "0.1.0"
 
@@ -18,6 +19,7 @@ __all__ = [
     "ScanResult",
     "scan_poisson",
     "scan_binomial",
+    "scan_spacetime_poisson",
     "monte_carlo_pvalue",
     "monte_carlo_scan",
     "poisson_llr",
